@@ -12,6 +12,7 @@ object Hello extends App {
   println(statPlantsAndCont.getPlantsInEachContinent())
   println(statPlants.getCountryWithMAxGasPlants())
 
+  
   println(statPlants.getCountryWithMinGasPlants())
   println(statPlants.getYear())
 
