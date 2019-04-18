@@ -1,19 +1,21 @@
+import com.github.tototoshi.csv.CSVReader
 
-
-trait CsvContReader {
+trait CsvReader2 {
   /**
     * @return A [[Seq]] containing all the sales.
     */
   def readFile(): Seq[CountriesAndContinentsData]
+
 }
 
-case class CountriesAndContinentsData(ContinentName:String, ContinentCode: String, country_code: String)
 
-class CsvContinentsReader (val fileName: String) extends CsvContReader {
+case class CountriesAndContinentsData(Continent_Name:String, Continent_Code: String,Three_Letter_Country_Code: String)
+
+class CsvContinentsReader (val fileName: String)  extends CsvReader2 {
   override def readFile(): Seq[CountriesAndContinentsData] =  {
-    for {
-      line <- io.Source.fromFile(fileName).getLines().drop(1).toVector
-      values = line.split(",", -1).map(_.trim)
-    } yield CountriesAndContinentsData(values(0), values(1), values(5))
+    val reader=CSVReader.open(fileName)
+    val cc=reader.allWithHeaders()
+    reader.close()
+    cc.map(value=> CountriesAndContinentsData(value("Continent_Name").toString, value("Continent_Code").toString, value("Three_Letter_Country_Code").toString))
   }
 }

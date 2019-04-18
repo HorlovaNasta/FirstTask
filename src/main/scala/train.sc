@@ -1,4 +1,4 @@
 import scala.util.Try
 
-def tryToDouble( s: String ) = Try(s.toDouble).toInt
-var x=tryToDouble("123.45")
+var s="212.84"
+println(s.toDouble.toInt)

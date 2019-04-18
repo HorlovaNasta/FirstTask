@@ -1,30 +1,31 @@
+import com.github.tototoshi.csv.CSVWriter
 
-case class PlantsWithContinents(country_code:String,  year_of_capacity_data: String, continentCode: String, continentName: String)
+case class PlantsWithContinents(country_code:String,  capacity_MV: Double, Continent_Name: String)
+
 class PlantAnsContinentsStat(val csvPlantReader: CsvPlantReader, val csvContinentsReader: CsvContinentsReader) {
-  val Plants=csvPlantReader.readData()
-  val countriesAndContinents=csvContinentsReader.readFile()
-
-  def printPlant(ind: Int): Unit ={
-    print(Plants(ind))
-  }
+  private val Plants=csvPlantReader.readData()
+  private val countriesAndContinents=csvContinentsReader.readFile()
 
 
-  def getPlantsInEachContinent()= {
-    val temp=Plants.groupBy(_.country_code).mapValues(_.length)
-    val out=new Array[PlantsWithContinents](Plants.size)
-
-    for (i<-0 until Plants.size-1){
-      val cont=countriesAndContinents.filter(_.country_code==Plants(i).country_code)
-      out(i)=PlantsWithContinents(Plants(i).country_code,Plants(i).year_of_capacity_data, cont(0).ContinentCode, cont(0).ContinentName)
+  def getPlantsInEachContinent(fileName:String):Unit= {
+    def matchContinentAndCountry(plantsData: PlantsData)={
+      val tmp1=countriesAndContinents.find(_.Three_Letter_Country_Code==plantsData.country_code)
+      if (tmp1.isDefined) {
+        tmp1.get.Continent_Name
+      }
+      else{
+        ""
+      }
     }
-    out.groupBy(_.continentName).mapValues(_.length)
+
+    val combined=Plants.map(value =>  PlantsWithContinents(value.country_code, value.capacity_MV, Continent_Name = matchContinentAndCountry(value))).filter(_.Continent_Name!="").groupBy(_.Continent_Name).mapValues(_.length).toSeq.map(value=>List(value._1, value._2))
+    val writer = CSVWriter.open(fileName)
+    writer.writeRow(List("Continent", "NumberOfPlants"))
+    writer.writeAll(combined)
+    writer.close()
 
   }
 
-  def getCountryWithMinGasPlants()={
-    val filtered=Plants.filter(_.fuel1s.contains("Gas"))
-    filtered.groupBy(_.country_long).mapValues(_.length).minBy(_._2)
-  }
 
 
 }
