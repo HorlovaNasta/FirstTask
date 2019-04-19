@@ -7,9 +7,7 @@ object ShowResults{
     val csvPlantsData=CsvReader.readData("./src/main/resources/sources/global_power_plant_database.csv").map(mapperForPlantsData)
     val statPlants=new PlantStat()
     val csvCountriesAndContinentName=CsvReader.readData("./src/main/resources/sources/data.csv").map(mapperForContinents)
-
-
-
+    
     var totalCapacity=statPlants.getTotalPower(csvPlantsData)
     writePlantsStat("Total  capacity of all existing power plants",totalCapacity, "./src/main/resources/sources/powerplants.csv", false)
 
