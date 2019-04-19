@@ -3,7 +3,7 @@ import com.github.tototoshi.csv.CSVWriter
 case class PlantsData(country_code:String, country_long: String, capacity_MV: Double,  commissioning_year:String, fuel1s:Array[String])
 case class CountriesAndContinentsData(Continent_Name:String, Continent_Code: String,Three_Letter_Country_Code: String)
 
-class PlantStat() {
+object PlantStat{
 
   def getTotalPower(Plants: Seq[PlantsData]):Double={
     Plants.map(_.capacity_MV).sum
