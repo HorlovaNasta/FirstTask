@@ -1,4 +1,3 @@
 import scala.util.Try
-
-var s="212.84"
-println(s.toDouble.toInt)
+val s=(1, 2,3,1,2)
+println()

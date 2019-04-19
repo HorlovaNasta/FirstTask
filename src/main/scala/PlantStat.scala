@@ -38,8 +38,8 @@ class PlantStat() {
       .filter(_.Continent_Name!="")
       .groupBy(_.Continent_Name).mapValues(_.length).toSeq.map(value=>List(value._1, value._2))
     combined
-
   }
+
 
 
 }

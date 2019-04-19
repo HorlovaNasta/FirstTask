@@ -1,27 +1,33 @@
 import com.github.tototoshi.csv.CSVWriter
+import scala.concurrent.{Await, ExecutionContext, Future}
+
 import java.nio.file.{Files, FileSystems}
 
 object ShowResults{
 
   def main(args:Array[String]): Unit={
-    val csvPlantsData=CsvReader.readData("./src/main/resources/sources/global_power_plant_database.csv").map(mapperForPlantsData)
+    val inputFileGlobalPlants="./src/main/resources/sources/global_power_plant_database.csv"
+    val inputFileGlobalContinents="./src/main/resources/sources/data.csv"
+    val outputFilePowePlants="./src/main/resources/sources/powerplants.csv"
+    val outputFileGeoStat="./src/main/resources/sources/geo-stats.csv"
+    val csvPlantsData=CsvReader.readData(inputFileGlobalPlants).map(mapperForPlantsData)
     val statPlants=new PlantStat()
-    val csvCountriesAndContinentName=CsvReader.readData("./src/main/resources/sources/data.csv").map(mapperForContinents)
-    
+    val csvCountriesAndContinentName=CsvReader.readData(inputFileGlobalContinents).map(mapperForContinents)
+
     var totalCapacity=statPlants.getTotalPower(csvPlantsData)
-    writePlantsStat("Total  capacity of all existing power plants",totalCapacity, "./src/main/resources/sources/powerplants.csv", false)
+    writePlantsStat("Total  capacity of all existing power plants",totalCapacity,outputFilePowePlants , false)
 
     val maxGasPlants=statPlants.getCountryWithMAxGasPlants(csvPlantsData)
-    writePlantsStat("Countries with the most gas power plants",maxGasPlants, "./src/main/resources/sources/powerplants.csv")
+    writePlantsStat("Countries with the most gas power plants",maxGasPlants, outputFilePowePlants)
 
     val minGasPlants=statPlants.getCountryWithMinGasPlants(csvPlantsData)
-    writePlantsStat("Countries with the least gas power plants",minGasPlants, "./src/main/resources/sources/powerplants.csv")
+    writePlantsStat("Countries with the least gas power plants",minGasPlants, outputFilePowePlants)
 
     val yearWithMaxNumOfPlants=statPlants.getYearWirhMaxPlantsOpened(csvPlantsData)
-    writePlantsStat("The year in which the largest number of power plants was put into operation",minGasPlants, "./src/main/resources/sources/powerplants.csv")
+    writePlantsStat("The year in which the largest number of power plants was put into operation",minGasPlants,outputFilePowePlants)
 
     val PlantsInEachContinent= statPlants.getPlantsInEachContinent(csvPlantsData, csvCountriesAndContinentName)
-    writePlantsInEachContinent(PlantsInEachContinent,"./src/main/resources/sources/geo-stats.csv")
+    writePlantsInEachContinent(PlantsInEachContinent,outputFileGeoStat)
   }
 
   def writePlantsInEachContinent(answer:Seq[List[Any]],  outputFile: String, header: List[String]=List("Continent", "NumberOfPlants")): Unit ={
