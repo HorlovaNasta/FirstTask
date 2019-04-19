@@ -54,6 +54,7 @@ object ShowResults{
 //  )
 
   implicit val ec: ExecutionContext = ExecutionContext.global
+  
   def getTotalPowerFromAll (file1: String, file2: String, file3: String, outputFilePowePlants:String): Future[List[Double]]=
     Future.sequence(List(file1, file2, file3)
       .map(path => Future(PlantStat.getTotalPower(CsvReader.readData(path).map(mapperForPlantsData))))
