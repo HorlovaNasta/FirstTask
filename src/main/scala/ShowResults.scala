@@ -16,7 +16,7 @@ case class PlantsData(country_code: String, country_long: String, capacity_MV: D
 
 case class CountriesAndContinentsData(Continent_Name: String, Three_Letter_Country_Code: String)
 
-object ShowResults{
+object ShowResults {
 
   val countryCodeInCSV = "country"
   val countryNameInCSV = "country_long"
