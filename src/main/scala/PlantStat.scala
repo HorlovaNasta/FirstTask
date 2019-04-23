@@ -1,45 +1,43 @@
 import com.github.tototoshi.csv.CSVWriter
 
-case class PlantsData(country_code:String, country_long: String, capacity_MV: Double,  commissioning_year:String, fuel1s:Array[String])
-case class CountriesAndContinentsData(Continent_Name:String, Continent_Code: String,Three_Letter_Country_Code: String)
+import scala.collection.mutable
+
+import scala.collection.immutable.HashMap
+
 
 object PlantStat{
 
+  val gasName="Gas"
   def getTotalPower(Plants: Seq[PlantsData]):Double={
     Plants.map(_.capacity_MV).sum
   }
-  def getCountryWithMAxGasPlants(Plants: Seq[PlantsData]): String={
-    val filtered=Plants.filter(_.fuel1s.contains("Gas"))
-    filtered.groupBy(_.country_long).mapValues(_.length).maxBy(_._2)._1
+  def getCountryWithMaxGasPlants(Plants: Seq[PlantsData]): HashMap[String, Int]={
+    val filtered=Plants.filter(_.fuels.contains(gasName)).groupBy(_.country_long).mapValues(_.length)
+    val maxCountry=filtered.maxBy(_._2)._2
+    HashMap(filtered.filter(_._2==maxCountry).toList:_*)
+  }
+
+  def getCountryWithMinGasPlants(Plants: Seq[PlantsData]): HashMap[String, Int]={
+    val filtered=Plants.filter(_.fuels.contains(gasName)).groupBy(_.country_long).mapValues(_.length)
+    val minCountry=filtered.minBy(_._2)._2
+    HashMap(filtered.filter(_._2==minCountry).toList:_*)
+  }
+  def getYearWithMaxPlantsOpened(Plants: Seq[PlantsData]): HashMap[Int, Int]={
+
+    val filtered=Plants.filter(!_.commissioning_year.isEmpty).map(value =>   (value.country_code, value.commissioning_year.toDouble.toInt)).groupBy(_._2).mapValues(_.length)
+    val maxYearValue=filtered.maxBy(_._2)._2
+    HashMap(filtered.filter(_._2 == maxYearValue).toList:_*)
 
   }
 
-  def getCountryWithMinGasPlants(Plants: Seq[PlantsData]):String={
-    val filtered=Plants.filter(_.fuel1s.contains("Gas"))
-    filtered.groupBy(_.country_long).mapValues(_.length).minBy(_._2)._1
-  }
-  def getYearWirhMaxPlantsOpened(Plants: Seq[PlantsData]): Int ={
-    case class Commissioning_year(year: Int)
-    Plants.filter(_.commissioning_year!="").map(value =>  Commissioning_year(value.commissioning_year.toDouble.toInt)).groupBy(_.year).mapValues(_.length).maxBy(_._2)._1
-  }
-
-  def getPlantsInEachContinent(Plants: Seq[PlantsData], countriesAndContinents:Seq[CountriesAndContinentsData]):Seq[List[Any]]= {
+  def getPlantsInEachContinent(Plants: Seq[PlantsData], countriesAndContinents:Seq[CountriesAndContinentsData]):HashMap[String, Int]= {
     def matchContinentAndCountry(plantsData: PlantsData):String={
-      val tmp1=countriesAndContinents.find(_.Three_Letter_Country_Code==plantsData.country_code)
-      if (tmp1.isDefined) {
-        tmp1.get.Continent_Name
-      }
-      else{
-        ""
-      }
+      countriesAndContinents.find(_.Three_Letter_Country_Code==plantsData.country_code).getOrElse(CountriesAndContinentsData("","")).Continent_Name
     }
-    case class PlantsWithContinents(country_code:String,  capacity_MV: Double, Continent_Name: String)
-    val combined=Plants.map(value =>  PlantsWithContinents(value.country_code, value.capacity_MV, Continent_Name = matchContinentAndCountry(value)))
-      .filter(_.Continent_Name!="")
-      .groupBy(_.Continent_Name).mapValues(_.length).toSeq.map(value=>List(value._1, value._2))
-    combined
+    HashMap(Plants.map(value =>  (value.country_code, value.capacity_MV,  matchContinentAndCountry(value)))
+      .filter(!_._3.isEmpty)
+      .groupBy(_._3).mapValues(_.length).toSeq.toList:_*)
   }
-
 
 
 }
