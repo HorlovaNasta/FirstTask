@@ -8,7 +8,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.io._
 import scala.util._
-
+import CsvWriter.{writeCountriesWithMaxGasPlants, writeCountriesWithMinGasPlants, writeHeaderForPowerPlants, writePlantsInEachContinent, writeTotalPower, writeYearWithMaxNumOfPlants, outputFilePowerPlants, outputFileGeoStat}
 
 import java.nio.file.{Files, FileSystems}
 
@@ -29,8 +29,7 @@ object ShowResults {
   val countryCodeInCSV2 = "Three_Letter_Country_Code"
   val inputFileGlobalPlants = "./src/main/resources/sources/global_power_plant_database.csv"
   val inputFileGlobalContinents = "./src/main/resources/sources/data.csv"
-  val outputFilePowerPlants = "./src/main/resources/sources/powerplants.csv"
-  val outputFileGeoStat = "./src/main/resources/sources/geo-stats.csv"
+
 
   val inputFileGlobalPlantsPart1 = "./src/main/resources/sources/xaa.csv"
   val inputFileGlobalPlantsPart2 = "./src/main/resources/sources/xab.csv"
@@ -125,43 +124,6 @@ object ShowResults {
       case Failure(e) => println("Failure")
     }
 
-  def writeHeaderForPowerPlants(outputFile: String, header: List[String] = List("Description", "Answer")): Unit = {
-    val writer = CSVWriter.open(outputFile)
-    writer.writeRow(header)
-  }
-
-  def writePlantsInEachContinent(answer: HashMap[String, Int], outputFile: String = outputFileGeoStat, header: List[String] = List("Continent", "NumberOfPlants")): Unit = {
-    val writer = CSVWriter.open(outputFile)
-    writer.writeRow(header)
-    writer.writeAll(answer.toSeq.map(value => List(value._1, value._2)))
-    writer.close()
-  }
-
-  def writeTotalPower(answer: Double, description: String = "Total capacity of all existing power plants", outputFile: String = outputFilePowerPlants): Unit = {
-
-    val writer = CSVWriter.open(outputFile, append = true)
-    writer.writeRow(Seq(description, answer))
-    writer.close()
-  }
-
-  def writeYearWithMaxNumOfPlants(answer: Map[Int, Int], description: String = "The year in which the largest number of power plants was put into operation", outputFile: String = outputFilePowerPlants): Unit = {
-    val writer = CSVWriter.open(outputFile, append = true)
-    writer.writeRow(Seq(description, answer.keys.toList))
-    writer.close()
-  }
-
-  def writeCountriesWithMaxGasPlants(answer: Map[String, Int], description: String = "Countries with the most gas power plants", outputFile: String = outputFilePowerPlants): Unit = {
-    val writer = CSVWriter.open(outputFile, append = true)
-    writer.writeRow(Seq(description, answer.keys.toList))
-    writer.close()
-  }
-
-  def writeCountriesWithMinGasPlants(answer: Map[String, Int], description: String = "Countries with the least gas power plants", outputFile: String = outputFilePowerPlants): Unit = {
-    val writer = CSVWriter.open(outputFile, append = true)
-    writer.writeRow(Seq(description, answer.keys.toList))
-    writer.close()
-  }
-
   def mapperForPlantsData(value: Map[String, String]): PlantsData = {
     PlantsData(value(countryCodeInCSV).toString, value(countryNameInCSV).toString, value(capacityInCSV).toDouble, value(commissioningYearInCSV).toString, Array(value(fuelNamesInCSV(0)), value(fuelNamesInCSV(1)), value(fuelNamesInCSV(2)), value(fuelNamesInCSV(3))))
   }
@@ -169,5 +131,4 @@ object ShowResults {
   def mapperForContinents(value: Map[String, String]): CountriesAndContinentsData = {
     CountriesAndContinentsData(value(continentNameInCSV2).toString, value(countryCodeInCSV2).toString)
   }
-
 }
