@@ -3,9 +3,9 @@ The file is located there - https://wri-dataportal-prod.s3.amazonaws.com/27c/271
 
   Tasks:
 1. Implement a class that calculates the following information in CVS format into the file powerplants.csv using the file data:
-  a. The total installed capacity of all existing power plants
-  b. Countries with the largest and smallest amount of gas power plants
-  c. The year in which the largest number of power plants was put into operation
+    1. The total installed capacity of all existing power plants
+    2. Countries with the largest and smallest amount of gas power plants
+    3. The year in which the largest number of power plants was put into operation
 2. Implement a class that displays in the geo-stats.csv file information on the number of power plants on each continent 
 (for this task additional file data.csv, which contains information about contries in each continent, was used) 
 
