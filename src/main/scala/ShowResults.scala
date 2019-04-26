@@ -1,6 +1,6 @@
-import com.github.tototoshi.csv.CSVWriter
 import scala.concurrent.{Await, ExecutionContext, Future}
 import com.typesafe.scalalogging.LazyLogging
+
 import scala.collection.JavaConverters._
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -8,127 +8,96 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.io._
 import scala.util._
-import CsvWriter.{writeCountriesWithMaxGasPlants, writeCountriesWithMinGasPlants, writeHeaderForPowerPlants, writePlantsInEachContinent, writeTotalPower, writeYearWithMaxNumOfPlants, outputFilePowerPlants, outputFileGeoStat}
+import Configuration._
+import GeneralStatsFields._
+import ContinentInfoFields._
+import java.nio.file.{FileSystems, Files}
 
-import java.nio.file.{Files, FileSystems}
-
-case class PlantsData(country_code: String, country_long: String, capacity_MV: Double, commissioning_year: String, fuels: Array[String])
-
-case class CountriesAndContinentsData(Continent_Name: String, Three_Letter_Country_Code: String)
-
-object ShowResults {
-
-  val countryCodeInCSV = "country"
-  val countryNameInCSV = "country_long"
-  val capacityInCSV = "capacity_mw"
-  val commissioningYearInCSV = "commissioning_year"
-  val fuelNamesInCSV = Array("fuel1", "fuel2", "fuel3", "fuel4")
-
-  val continentNameInCSV2 = "Continent_Name"
-  val continentCodeInCSV2 = "Continent_Code"
-  val countryCodeInCSV2 = "Three_Letter_Country_Code"
-  val inputFileGlobalPlants = "./src/main/resources/sources/global_power_plant_database.csv"
-  val inputFileGlobalContinents = "./src/main/resources/sources/data.csv"
+import org.graalvm.compiler.debug.DebugContext.Description
+import DataFormats._
+import CsvWriter._
 
 
-  val inputFileGlobalPlantsPart1 = "./src/main/resources/sources/xaa.csv"
-  val inputFileGlobalPlantsPart2 = "./src/main/resources/sources/xab.csv"
-  val inputFileGlobalPlantsPart3 = "./src/main/resources/sources/xac.csv"
-
+object ShowResults extends LazyLogging {
 
   def main(args: Array[String]): Unit = {
+    //    val tmp=CsvReader.readData(inputFileGlobalPlants).map(mapperForPlantsData)
+    //    PlantStat.getPowerGrowthByYear(tmp)
 
-    writeHeaderForPowerPlants(outputFilePowerPlants)
-    Await.ready(Future.sequence(Seq(
-      getTotalPowerFromAll(inputFileGlobalPlantsPart1, inputFileGlobalPlantsPart2, inputFileGlobalPlantsPart3),
-      getTotalYearsWithMaxNumOfPlants(inputFileGlobalPlantsPart1, inputFileGlobalPlantsPart2, inputFileGlobalPlantsPart3),
-      getTotalcountriesWithMaxGasPlants(inputFileGlobalPlantsPart1, inputFileGlobalPlantsPart2, inputFileGlobalPlantsPart3),
-      getTotalcountriesWithMinGasPlants(inputFileGlobalPlantsPart1, inputFileGlobalPlantsPart2, inputFileGlobalPlantsPart3),
-      getTotalPlantsInEachContinent(inputFileGlobalPlantsPart1, inputFileGlobalPlantsPart2, inputFileGlobalPlantsPart3, inputFileGlobalContinents)
-    )), Duration.Inf)
+    logger.info("Start main application...")
+    val generalStatResults = Future.sequence(Seq(
+      getTotalPowerFromAll(listInputFilesGlobalPlants),
+      getTotalYearsWithMaxNumOfPlants(listInputFilesGlobalPlants),
+      getTotalcountriesWithMaxGasPlants(listInputFilesGlobalPlants),
+      getTotalcountriesWithMinGasPlants(listInputFilesGlobalPlants)
+    )).map(values=>writeGeneralStat(values))
 
-
+    val writeSucessfulGeoStat = getTotalPlantsInEachContinent(listInputFilesGlobalPlants, inputFileGlobalContinents).map(value=>writePlantsInEachContinent(value))
+    Await.ready(Future.sequence(Seq(generalStatResults, writeSucessfulGeoStat)), Duration.Inf)
+    logger.info("Sucessfully ended")
   }
-
-  //  def parallelTotalPower(file1: String, file2: String, file3: String: Future[List[Double]]=
-  //    Future.sequence(List(file1, file2,file3 ))
-  //    .map(path=>Future(futureTotalPower(path)))
-  //  )
-
   implicit val ec: ExecutionContext = ExecutionContext.global
 
-  def getTotalPowerFromAll(file1: String, file2: String, file3: String, outputFile: String = outputFilePowerPlants): Future[List[Double]] =
-    Future.sequence(List(file1, file2, file3)
-      .map(path => Future(PlantStat.getTotalPower(CsvReader.readData(path).map(mapperForPlantsData))))
-    ) andThen {
-      case Success(values) => {
-        writeTotalPower(values.sum, outputFile = outputFile)
-      }
-      case Failure(e) => println("Failure")
-    }
+  def getTotalPowerFromAll(files: List[String], description: String="Total capacity of all existing power plants"): Future[Answer] = {
+    logger.info("Calculating total installed capacity of all operating power plants")
+    Future.sequence(files.map(path => Future(PlantStat.getTotalPower(CsvReader.readData(path).map(mapperForPlantsData))))
+    ).map(values => {
+      Answer(description,values.sum)
+    })
+  }
 
-  def getTotalYearsWithMaxNumOfPlants(file1: String, file2: String, file3: String, outputFile: String = outputFilePowerPlants): Future[Seq[HashMap[Int, Int]]] =
-    Future.sequence(List(file1, file2, file3)
+  def getTotalYearsWithMaxNumOfPlants(files: List[String], description: String="The year in which the largest number of power plants was put into operation"): Future[Answer] = {
+    logger.info("Searching for years in which the largest number of power plants was put into operation")
+    Future.sequence(files
       .map(path => Future(PlantStat.getYearWithMaxPlantsOpened(CsvReader.readData(path).map(mapperForPlantsData))))
-    ) andThen {
-      case Success(values) => {
-        val allYears = values.fold(HashMap())((l, r) => l.merged(r) {
-          case ((k1, v1), (k2, v2)) => (k1, v1 + v2)
-        })
+    ).map(values => {
+      val allYears = values.fold(HashMap())((l, r) => l.merged(r) {
+        case ((k1, v1), (k2, v2)) => (k1, v1 + v2)
+      })
+      val maxYear = allYears.maxBy(_._2)._2
+      Answer(description, allYears.filter(_._2 == maxYear).keys.toList)
+    })
+  }
 
-        val maxYear = allYears.maxBy(_._2)._2
-        writeYearWithMaxNumOfPlants(allYears.filter(_._2 == maxYear), outputFile = outputFile)
-      }
-      case Failure(e) => println("Failure")
-    }
+  def getTotalcountriesWithMaxGasPlants(files:  List[String], description: String="Countries with the most gas power plants"): Future[Answer] = {
+    logger.info("Searching for countries with the largest amount of gas power plants")
 
-  def getTotalcountriesWithMaxGasPlants(file1: String, file2: String, file3: String, outputFile: String = outputFilePowerPlants): Future[Seq[HashMap[String, Int]]] =
-    Future.sequence(List(file1, file2, file3)
+    Future.sequence(files
       .map(path => Future(PlantStat.getCountryWithMaxGasPlants(CsvReader.readData(path).map(mapperForPlantsData))))
-    ) andThen {
-      case Success(values) => {
-        val allCountries = values.fold(HashMap())((l, r) => l.merged(r) {
-          case ((k1, v1), (k2, v2)) => (k1, v1 + v2)
-        })
+    ).map(values => {
+      val allCountries = values.fold(HashMap())((l, r) => l.merged(r) {
+        case ((k1, v1), (k2, v2)) => (k1, v1 + v2)
+      })
 
-        val maxCountry = allCountries.maxBy(_._2)._2
-        writeCountriesWithMaxGasPlants(allCountries.filter(_._2 == maxCountry), outputFile = outputFile)
-      }
-      case Failure(e) => println("Failure")
-    }
+      val maxCountry = allCountries.maxBy(_._2)._2
+      Answer(description, allCountries.filter(_._2 == maxCountry).keys.toList)
+    })
+  }
 
-  def getTotalcountriesWithMinGasPlants(file1: String, file2: String, file3: String, outputFile: String = outputFilePowerPlants): Future[Seq[HashMap[String, Int]]] =
-    Future.sequence(List(file1, file2, file3)
+  def getTotalcountriesWithMinGasPlants(files:  List[String], description: String="Countries with the least gas power plants"): Future[Answer] = {
+    logger.info("Searching for countries with the smallest amount of gas power plants")
+    Future.sequence(files
       .map(path => Future(PlantStat.getCountryWithMinGasPlants(CsvReader.readData(path).map(mapperForPlantsData))))
-    ) andThen {
-      case Success(values) => {
-        val allCountries = values.fold(HashMap())((l, r) => l.merged(r) {
-          case ((k1, v1), (k2, v2)) => (k1, v1 + v2)
-        })
-        val minCountry = allCountries.minBy(_._2)._2
-        writeCountriesWithMinGasPlants(allCountries.filter(_._2 == minCountry), outputFile = outputFile)
-      }
-      case Failure(e) => println("Failure")
-    }
-
-  def getTotalPlantsInEachContinent(file1: String, file2: String, file3: String, file4: String, outputFile: String = outputFileGeoStat): Future[Seq[HashMap[String, Int]]] =
-    Future.sequence(List(file1, file2, file3)
-      .map(path => Future(PlantStat.getPlantsInEachContinent(CsvReader.readData(path).map(mapperForPlantsData), CsvReader.readData(file4).map(mapperForContinents))))
-    ) andThen {
-      case Success(values) => {
-        val allCountries = values.fold(HashMap())((l, r) => l.merged(r) {
-          case ((k1, v1), (k2, v2)) => (k1, v1 + v2)
-        })
-        writePlantsInEachContinent(allCountries, outputFile = outputFile)
-      }
-      case Failure(e) => println("Failure")
-    }
-
-  def mapperForPlantsData(value: Map[String, String]): PlantsData = {
-    PlantsData(value(countryCodeInCSV).toString, value(countryNameInCSV).toString, value(capacityInCSV).toDouble, value(commissioningYearInCSV).toString, Array(value(fuelNamesInCSV(0)), value(fuelNamesInCSV(1)), value(fuelNamesInCSV(2)), value(fuelNamesInCSV(3))))
+    ).map(values => {
+      val allCountries = values.fold(HashMap())((l, r) => l.merged(r) {
+        case ((k1, v1), (k2, v2)) => (k1, v1 + v2)
+      })
+      val minCountry = allCountries.minBy(_._2)._2
+      Answer(description, allCountries.filter(_._2 == minCountry).keys.toList)
+    })
   }
 
-  def mapperForContinents(value: Map[String, String]): CountriesAndContinentsData = {
-    CountriesAndContinentsData(value(continentNameInCSV2).toString, value(countryCodeInCSV2).toString)
+  def getTotalPlantsInEachContinent(files:  List[String],file2: String): Future[HashMap[String, Int]]= {
+    logger.info("Calcilating the number of power plants on each continent")
+    Future.sequence(files
+      .map(path => Future(PlantStat.getPlantsInEachContinent(CsvReader.readData(path).map(mapperForPlantsData), CsvReader.readData(file2).map(mapperForContinents))))
+    ).map(values => {
+      val allCountries = values.fold(HashMap())((l, r) => l.merged(r) {
+        case ((k1, v1), (k2, v2)) => (k1, v1 + v2)
+      })
+      allCountries
+    })
   }
+
+
 }

@@ -1,10 +1,6 @@
-import com.github.tototoshi.csv.CSVWriter
-
-import scala.collection.mutable
-
 import scala.collection.immutable.HashMap
-
-
+import DataFormats._
+import Configuration._
 object PlantStat {
 
   val gasName = "Gas"
@@ -33,6 +29,12 @@ object PlantStat {
 
   }
 
+//  def getPowerGrowthByYear(Plants: Seq[PlantsData])={
+//    val filtered =Plants.filter(!_.commissioning_year.isEmpty).map(value => (value.commissioning_year.toDouble.toInt, value.capacity_MV)).sortWith(_._1<_._1)
+//    val res=filtered.reduce(((k1, v1), (k2, v2)) => (k1, v1 + v2))
+//    filtered
+//  }
+
   def getPlantsInEachContinent(Plants: Seq[PlantsData], countriesAndContinents: Seq[CountriesAndContinentsData]): HashMap[String, Int] = {
     def matchContinentAndCountry(plantsData: PlantsData): String = {
       countriesAndContinents.find(_.Three_Letter_Country_Code == plantsData.country_code).getOrElse(CountriesAndContinentsData("", "")).Continent_Name
@@ -45,4 +47,3 @@ object PlantStat {
 
 
 }
-
