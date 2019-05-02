@@ -13,7 +13,9 @@ The file is located there - https://wri-dataportal-prod.s3.amazonaws.com/27c/271
 1. Split the source file into 3 parts and rewrite program for their competitive processing
 1. Add logging using third-party libraries.
 2. Create a utility service for parsing resources using third-party libraries.
+3. Move all utility classes to a separate package.
+4. Use the typesafe config library to load the config.
 
-Path to files are defined in Configuration.scala
+Path to files are defined in src/main/resources/app.conf
 Log config location: src/main/resources/logback.xml
 
