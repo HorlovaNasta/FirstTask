@@ -1,4 +1,3 @@
 import scala.util.Try
-
-def tryToDouble( s: String ) = Try(s.toDouble).toInt
-var x=tryToDouble("123.45")
+val s=(1, 2,3,1,2)
+println()
