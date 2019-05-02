@@ -1,3 +1,5 @@
+package com.itechart.bigdata.utils
+
 import com.github.tototoshi.csv.CSVReader
 
 object CsvReader {
