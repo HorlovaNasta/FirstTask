@@ -1,6 +1,5 @@
 import scala.collection.immutable.HashMap
 import DataFormats._
-import Configuration._
 object PlantStat {
 
   val gasName = "Gas"
