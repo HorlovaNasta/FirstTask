@@ -1,8 +1,10 @@
 import scala.collection.immutable.HashMap
 import DataFormats._
+
 object PlantStat {
 
   val gasName = "Gas"
+
 
   def getTotalPower(Plants: Seq[PlantsData]): Double = {
     Plants.map(_.capacity_MV).sum
