@@ -1,0 +1,110 @@
+--1) выбрать имена и фамилии студентов, успешно сдавших экзаменб упорядоченных по результату экзамена
+SELECT student.first_name, student.last_name
+FROM students.student
+         INNER JOIN students.student_result res ON student.id = res.student_id
+WHERE res.exam_id = 1
+  and res.result > 2
+ORDER BY res.result DESC;
+
+--2) посчитать количество студентов, успешно сдавших экзамен на 4 и 5
+SELECT COUNT(*)
+FROM students.student_result res
+WHERE res.exam_id = 1
+  and result in (4, 5)
+GROUP BY exam_id;
+
+--3) количество студентов, сдавших экзамен автоматом
+SELECT count(*)
+from students.student_result st_res
+         left join students.exam_result exam_res
+                   on st_res.student_id = exam_res.student_id and st_res.exam_id = exam_res.exam_id
+where st_res.exam_id = 2
+  and exam_res.exam_id is NULL
+  and st_res.result in (3, 4, 5);
+
+--4)Средний балл студентов по базам данных
+SELECT avg(st_res.result)
+from students.student_result st_res
+         inner join students.training_course course on st_res.training_course_id = course.id
+WHERE course.name = 'RDBMS';
+
+--5) выбрать имена и фамилии студентов, не сдавших экзамен по предметы "RDBMS"
+
+SELECT student.first_name, student.last_name
+FROM students.student
+         INNER JOIN students.student_result res ON student.id = res.student_id
+         INNER JOIN students.training_course course on res.training_course_id = course.id
+where res.result < 3
+  and course.name = 'RDBMS';
+
+SELECT student.first_name, student.last_name
+FROM students.student student
+WHERE exists(
+              SELECT *
+              from students.student_result res
+                       INNER JOIN students.training_course course on res.training_course_id = course.id
+              where student.id = res.student_id
+                and res.result < 3
+                and course.name = 'RDBMS'
+          );
+
+--6) выбрать идентефикаторы преподователей, читающих лекции по более чем одному предмету
+
+SELECT teacher_id
+from students.training_course
+group by teacher_id
+having count(teacher_id) >= 2;
+
+--7) выбрать идентефикатор и фамилии студентов, пересдавших хотя бы 1 предмет
+
+SELECT student.id, student.last_name
+from students.student
+         join students.exam_result res on student.id = res.student_id
+GROUP BY student.id, student.last_name, res.exam_id
+HAVING count(*) > 1;
+
+--8) вывести имена и фамилии 5 студентов с макисмальными оценками
+
+SELECT student.first_name, student.last_name, res.result
+FROM students.student
+         INNER JOIN students.student_result res ON student.id = res.student_id
+WHERE res.result = (select max(result) from students.student_result)
+limit 5;
+
+--9) вывести фамилию преподователя, у которого наилучшие результаты по его предметам
+SELECT last_name
+from (SELECT teacher.id, teacher.last_name, avg(exam_res.result) mean_val, max(avg(exam_res.result)) over () max_val
+      from students.techer teacher
+               inner join students.exam exam on teacher.id = exam.teacher_id
+               inner join students.exam_result exam_res
+                          on teacher.id = exam_res.teacher_id and exam.id = exam_res.exam_id
+      GROUP BY teacher.id, teacher.last_name) result_table
+where mean_val = max_val;
+
+--10) вывсети успеваемость студентов по годам по предмету "RDBMS"
+SELECT extract(year from res.date) year_of_exam,avg(res.result) mean_val
+      from students.student_result res
+               inner join students.student st on res.student_id = st.id where res.training_course_id=1 GROUP BY year_of_exam;
+-- вставска новых значений для задания 10
+/*
+INSERT INTO students.student (first_name, last_name, birth_date, sex, hostel_live) values ('Alena','Ivanova', '1989/01/02', 0::bit, 1::bit);
+INSERT INTO students.student (first_name, last_name, birth_date, sex, hostel_live) values ('Anna','Petrova', '1990/03/11', 0::bit, 1::bit);
+INSERT INTO students.student (first_name, last_name, birth_date, sex, hostel_live) values ('Petr','Semovich', '1990/07/10', 1::bit, 1::bit);
+INSERT INTO students.student (first_name, last_name, birth_date, sex, hostel_live) values ('Ornest','Vasiliev', '1990/04/12', 1::bit, 1::bit);
+commit;
+
+INSERT INTO students.exam (date, teacher_id, training_course_id) values ('2015/12/02', 1, 1);
+commit;
+
+INSERT INTO students.student_result (exam_id, training_course_id, student_id, result, date) values (6, 1, 15, 5, '2015/12/02');
+INSERT INTO students.student_result (exam_id, training_course_id, student_id, result, date) values (6, 1, 16, 3, '2015/12/02');
+INSERT INTO students.student_result (exam_id, training_course_id, student_id, result, date) values (6, 1, 17, 5, '2015/12/02');
+INSERT INTO students.student_result (exam_id, training_course_id, student_id, result, date) values (6, 1, 18, 5, '2015/12/02');
+commit;
+INSERT INTO students.student (first_name, last_name, birth_date, sex, hostel_live) values ('Marina','Petrova', '1991/04/12', 0::bit, 1::bit);
+commit;
+INSERT INTO students.student_result (exam_id, training_course_id, student_id, result, date) values (null, 1, 19, 5, '2015/11/02');
+commit;
+ */
+
+
