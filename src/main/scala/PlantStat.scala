@@ -7,26 +7,25 @@ object PlantStat {
 
 
   def getTotalPower(Plants: Seq[PlantsData]): Double = {
-    Plants.map(_.capacity_MV).sum
+    Plants.foldLeft(0.0)(_+_.capacity_MV)
+
+    //Plants.map(_.capacity_MV).sum
   }
 
-  def getCountryWithMaxGasPlants(Plants: Seq[PlantsData]): HashMap[String, Int] = {
+  def getCountryWithMaxGasPlants(Plants: Seq[PlantsData]): HashMap[Any, Int] = {
     val filtered = Plants.filter(_.fuels.contains(gasName)).groupBy(_.country_long).mapValues(_.length)
     val maxCountry = filtered.maxBy(_._2)._2
     HashMap(filtered.filter(_._2 == maxCountry).toList: _*)
   }
 
-  def getCountryWithMinGasPlants(Plants: Seq[PlantsData]): HashMap[String, Int] = {
+  def getCountryWithMinGasPlants(Plants: Seq[PlantsData]): HashMap[Any, Int] = {
     val filtered = Plants.filter(_.fuels.contains(gasName)).groupBy(_.country_long).mapValues(_.length)
     val minCountry = filtered.minBy(_._2)._2
     HashMap(filtered.filter(_._2 == minCountry).toList: _*)
   }
 
-  def getYearWithMaxPlantsOpened(Plants: Seq[PlantsData]): HashMap[Int, Int] = {
-
-    val filtered = Plants.filter(!_.commissioning_year.isEmpty).map(value => (value.country_code, value.commissioning_year.toDouble.toInt)).groupBy(_._2).mapValues(_.length)
-    val maxYearValue = filtered.maxBy(_._2)._2
-    HashMap(filtered.filter(_._2 == maxYearValue).toList: _*)
+  def getYearWithMaxPlantsOpened(Plants: Seq[PlantsData]): HashMap[Any, Int] = {
+    HashMap(Plants.filter(_.commissioning_year.nonEmpty).groupBy(_.commissioning_year.toDouble.toInt).mapValues(_.length).toList: _*)
 
   }
 
